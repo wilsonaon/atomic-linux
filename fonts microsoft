@@ -1,0 +1,18 @@
+curl -sSL https://raw.githubusercontent.com/FSKiller/Microsoft-Fonts/main/install.sh | bash 2>/dev/null || bash -c "$(curl -fsSL https://gist.githubusercontent.com/guto-b/example/raw/ms-fonts.sh 2>/dev/null)" || echo "Use o método manual abaixo para total segurança!"
+
+#ou
+
+# 1. Cria o diretório de fontes do usuário caso ele não exista
+mkdir -p ~/.local/share/fonts
+
+# 2. Clona o repositório temporariamente em uma pasta do sistema
+git clone https://github.com/FSKiller/Microsoft-Fonts.git /tmp/Microsoft-Fonts
+
+# 3. Move apenas os arquivos de fonte (.ttf, .otf, .ttc) para a pasta correta
+mv /tmp/Microsoft-Fonts/*.{ttf,TTF,otf,OTF,ttc,TTC} ~/.local/share/fonts/ 2>/dev/null
+
+# 4. Limpa os arquivos temporários do Git que não são mais necessários
+rm -rf /tmp/Microsoft-Fonts
+
+# 5. atualizar Cache
+fc-cache -fv
