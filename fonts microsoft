@@ -1,7 +1,3 @@
-curl -sSL https://raw.githubusercontent.com/FSKiller/Microsoft-Fonts/main/install.sh | bash 2>/dev/null || bash -c "$(curl -fsSL https://gist.githubusercontent.com/guto-b/example/raw/ms-fonts.sh 2>/dev/null)" || echo "Use o método manual abaixo para total segurança!"
-
-#ou
-
 # 1. Cria o diretório de fontes do usuário caso ele não exista
 mkdir -p ~/.local/share/fonts
 
