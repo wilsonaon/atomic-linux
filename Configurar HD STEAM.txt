@@ -1,0 +1,86 @@
+================================================================================
+GUIA: HABILITAR HD EXTERNO NA STEAM FLATPAK (DISTRIBUIÇÕES LINUX IMUTÁVEIS)
+Sistemas compatíveis: Fedora Kinoite, Silverblue, Bazzite, SteamOS, etc.
+================================================================================
+
+Em distribuições imutáveis baseadas em ostree, /mnt é um link simbólico para 
+/var/mnt, e o seletor gráfico de arquivos do Flatpak (XDG Portal) costuma 
+falhar ao adicionar bibliotecas externas na Steam.
+
+A solução definitiva consiste em 3 etapas: montar o disco no caminho real 
+(/var/mnt/...), liberar a pasta no Flatpak e registrar a biblioteca direto no 
+arquivo libraryfolders.vdf.
+
+--------------------------------------------------------------------------------
+1. MONTAGEM AUTOMÁTICA NO /etc/fstab E PERMISSÕES DO DISCO
+--------------------------------------------------------------------------------
+Descubra o UUID da partição (ext4/btrfs) rodando:
+  lsblk -f
+
+Crie o ponto de montagem no caminho físico real (/var/mnt) e adicione a entrada 
+no /etc/fstab (a opção 'nofail' evita travar o boot se o HD estiver desconectado):
+
+  sudo mkdir -p /var/mnt/JOGOS
+  sudo nano /etc/fstab
+
+Adicione a linha (substitua pelo seu UUID se necessário):
+  UUID=d88eb048-b641-4e99-af53-ec46969a9739 /var/mnt/JOGOS ext4 defaults,noatime,exec,nofail 0 2
+
+Recarregue o systemd, monte o disco e aplique permissões COM O DISCO MONTADO:
+  sudo systemctl daemon-reload
+  sudo mount -a
+  sudo chown -R $USER:$USER /var/mnt/JOGOS
+  sudo chmod -R u+rwX /var/mnt/JOGOS
+  mkdir -p /var/mnt/JOGOS/SteamLibrary
+
+--------------------------------------------------------------------------------
+2. PERMISSÃO DE ACESSO PARA A STEAM FLATPAK
+--------------------------------------------------------------------------------
+Feche completamente a Steam e libere o acesso ao diretório /var/mnt/JOGOS na 
+sandbox do Flatpak:
+
+  flatpak kill com.valvesoftware.Steam
+  flatpak override --user --filesystem=/var/mnt/JOGOS com.valvesoftware.Steam
+
+(Opcional) Teste se a Steam enxerga e consegue gravar dentro da sandbox:
+  flatpak run --command=sh com.valvesoftware.Steam -c "touch /var/mnt/JOGOS/teste && rm /var/mnt/JOGOS/teste"
+
+--------------------------------------------------------------------------------
+3. EDITAR O ARQUIVO libraryfolders.vdf DIRETAMENTE
+--------------------------------------------------------------------------------
+Com a Steam fechada, abra o arquivo de configuração de bibliotecas:
+  nano ~/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/libraryfolders.vdf
+
+Adicione o bloco "1" apontando para /var/mnt/JOGOS/SteamLibrary logo abaixo do 
+bloco "0" (mantenha as chaves principais alinhadas):
+
+"libraryfolders"
+{
+	"0"
+	{
+		"path"		"/var/home/SEU_USUARIO/.var/app/com.valvesoftware.Steam/.local/share/Steam"
+		"label"		""
+	}
+	"1"
+	{
+		"path"		"/var/mnt/JOGOS/SteamLibrary"
+		"label"		"JOGOS"
+	}
+}
+
+Salve o arquivo (Ctrl+O, Enter, Ctrl+X) e abra a Steam normalmente.
+A unidade aparecerá automaticamente em: Steam > Configurações > Armazenamento.
+
+--------------------------------------------------------------------------------
+4. DICAS EXTRAS (AUTOSTART SILENCIOSO E ATALHOS DE JOGOS)
+--------------------------------------------------------------------------------
+- Iniciar Steam minimizada na bandeja do sistema (Autostart):
+  Adicione '-silent' antes de '@@u %U @@' no comando de execução:
+  flatpak run --branch=stable --arch=x86_64 --command=/app/bin/steam --file-forwarding com.valvesoftware.Steam -silent @@u %U @@
+
+- Corrigir atalhos .desktop de jogos criados pela Steam:
+  Os atalhos ficam em ~/.local/share/applications/
+  Altere a linha 'Exec=steam steam://rungameid/ID' para:
+  Exec=flatpak run com.valvesoftware.Steam steam://rungameid/ID
+  Depois atualize o menu com: update-desktop-database ~/.local/share/applications/
+================================================================================
