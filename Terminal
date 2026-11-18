@@ -1,0 +1,5 @@
+nano ~/.bashrc
+
+PROMPT_COMMAND='PS1="\[\e[1;35m\]\u@\h\[\e[0m\]\$ "'
+
+source ~/.bashrc
